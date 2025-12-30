@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  #
+  # Oracle DB
+  #
+  oracle-db:
+    image: pajadla/oracle-database:19.3.0-ee
+    container_name: oracle-ee
+    ports:
+      - "1521:1521"
+      - "5500:5500"
+    environment:
+      - ORACLE_SID=ORCLCDB
+      - ORACLE_PDB=ORCLPDB1
+      - ORACLE_PWD=admin1234
+      - ORACLE_CHARACTERSET=AL32UTF8
+    volumes:
+      - oracle-data:/opt/oracle/oradata
+    shm_size: 2g
+    healthcheck:
+      test: ["CMD", "sqlplus", "-L", "sys/admin1234@ORCLPDB1 as sysdba", "@healthcheck.sql"]
+      interval: 1m
+      timeout: 10s
+      retries: 10
+    restart: unless-stopped
+  #
+  # Vault
+  #
+  vault:
+    container_name: vault
+    image: hashicorp/vault:latest
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: "00000000-0000-0000-0000-000000000000"
+    ports:
+      - "8200:8200"
+    cap_add:
+      - IPC_LOCK
+    command: server -dev
+
+volumes:
+  oracle-data:
+networks:
+  default:
+    name: services-network
+    driver: bridge
