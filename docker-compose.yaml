@@ -1,10 +1,11 @@
-version: '3.8'
+# version: '3.8'  # можно убрать — compose сам предупреждает что version устарел
 
 services:
   #
   # Oracle DB
   #
   oracle-db:
+    platform: linux/amd64 #only for unix system
     image: pajadla/oracle-database:19.3.0-ee
     container_name: oracle-ee
     ports:
@@ -24,6 +25,7 @@ services:
       timeout: 10s
       retries: 10
     restart: unless-stopped
+
   #
   # Vault
   #
@@ -38,8 +40,55 @@ services:
       - IPC_LOCK
     command: server -dev
 
+  #
+  # Kafka (KRaft, без Zookeeper)
+  #
+  kafka:
+    image: apache/kafka-native:3.8.0
+    container_name: kafka
+    ports:
+      - "9092:9092"
+    environment:
+      # listeners: HOST (для приложений на хосте) и DOCKER (для контейнеров)
+      KAFKA_LISTENERS: "CONTROLLER://localhost:9091,HOST://0.0.0.0:9092,DOCKER://0.0.0.0:9093"
+      KAFKA_ADVERTISED_LISTENERS: "HOST://localhost:9092,DOCKER://kafka:9093"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "CONTROLLER:PLAINTEXT,DOCKER:PLAINTEXT,HOST:PLAINTEXT"
+
+      # KRaft required
+      KAFKA_NODE_ID: "1"
+      KAFKA_PROCESS_ROLES: "broker,controller"
+      KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@localhost:9091"
+
+      # inter-broker comms
+      KAFKA_INTER_BROKER_LISTENER_NAME: "DOCKER"
+
+      # single node
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "1"
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    restart: unless-stopped
+
+  #
+  # Kafka UI
+  #
+  kafka-ui:
+    image: kafbat/kafka-ui:main
+    container_name: kafka-ui
+    ports:
+      - "8080:8080"
+    environment:
+      DYNAMIC_CONFIG_ENABLED: "true"
+      KAFKA_CLUSTERS_0_NAME: "local"
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: "kafka:9093"
+    depends_on:
+      - kafka
+    restart: unless-stopped
+
 volumes:
   oracle-data:
+  kafka-data:
+
 networks:
   default:
     name: services-network
