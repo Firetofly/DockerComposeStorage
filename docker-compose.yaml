@@ -100,11 +100,29 @@ services:
     volumes:
       - artemis-data:/var/lib/artemis-instance
     restart: unless-stopped
+  #
+  # PostgreSQL DB
+  #
+  postgres:
+    image: postgres:16
+    container_name: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: app_db
+      POSTGRES_USER: app_user
+      POSTGRES_PASSWORD: app_password
+      TZ: "UTC"
+      PGTZ: "UTC"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
 
 volumes:
   oracle-data:
   kafka-data:
   artemis-data:
+  postgres-data:
 
 networks:
   default:
