@@ -117,6 +117,26 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
     restart: unless-stopped
+  #
+  # Samba (SMB share)
+  #
+  samba:
+    image: dperson/samba:latest
+    container_name: samba
+    ports:
+      - "137:137/udp"
+      - "138:138/udp"
+      - "139:139/tcp"
+      - "445:445/tcp"
+    environment:
+      TZ: "UTC"
+    volumes:
+      - ./samba/share:/share
+    command: >
+      -u "samba;samba"
+      -s "share;/share;yes;no;no;samba"
+      -p
+    restart: unless-stopped
 
 volumes:
   oracle-data:
